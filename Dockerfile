@@ -7,6 +7,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-ENV PORT=8000  # optional, Render က override လုပ်တယ်
+# PORT env var - Render will override this anyway
+ENV PORT=8000
 
 CMD ["python", "bot.py"]
