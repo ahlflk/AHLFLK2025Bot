@@ -89,30 +89,35 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == 'about':
         await query.edit_message_text(
-            text="👋 မင်္ဂလာပါ!\n"
+            text="🤖 <b>Bot အကြောင်း</b>\n\n"
+                 "ဒီ Bot က Group Management နဲ့ Member အသစ်များကို အလိုအလျောက် ကြိုဆိုရန် အတွက် ဖန်တီးထားခြင်း ဖြစ်ပါတယ်။\n\n"
+                 "👨‍💻 Developer: @AHLFLK2025",
+            parse_mode='HTML'
         )
     elif query.data == 'help':
         await query.edit_message_text(
-            text="❓ အကူအညီလိုအပ်ရင်:\n"
+            text="❓ <b>အကူအညီ</b>\n\n"
                  "- /start ကို နှိပ်ပါ\n"
-                 "- Admin ကို ဆက်သွယ်ရန်:\n"
-                 "_👉 @AHLFLK2025"
+                 "❓ အကူအညီ လိုအပ်ပါက\n\n"
+                 "👇 Admin ကို ဆက်သွယ်ရန်"
+                 "👉 Admin: @AHLFLK2025",
+            parse_mode='HTML'
         )
     elif query.data == 'contact':
         await query.edit_message_text(
-            text="📞 ဆက်သွယ်ရန်:\n"
-                 "👇 Admin Account\n"
-                 "👉 @AHLFLK2025\n"
+            text="📞 <b>ဆက်သွယ်ရန်</b>\n\n"
+                 "❓ အကူအညီ လိုအပ်ပါက\n\n"
+                 "👇 Admin ကို ဆက်သွယ်ရန်"
+                 "👉 Admin: @AHLFLK2025",
+            parse_mode='HTML'
         )
     elif query.data == 'rules':
         await query.edit_message_text(
             text="📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
                  "1. ယဉ်ကျေးစွာ ဆက်ဆံပါ\n"
                  "2. Spam၊ Ads မလုပ်ပါနဲ့\n"
-                 "3. အဖွဲ့နဲ့ မသက်ဆိုင်တဲ့\n"
-                 "အကြောင်းအရာများ မမျှဝေပါနဲ့\n\n"
-                 "စည်းမျဉ်းများ ချိုးဖောက်ရင်"
-                 "Group မှ ဖယ်ရှားပါမယ်။",
+                 "3. အဖွဲ့နဲ့ မသက်ဆိုင်တဲ့ အကြောင်းအရာများ မမျှဝေပါနဲ့\n\n"
+                 "စည်းမျဉ်းများ ချိုးဖောက်ပါက Group မှ ဖယ်ရှားပါမယ်။",
             parse_mode='HTML'
         )
 
