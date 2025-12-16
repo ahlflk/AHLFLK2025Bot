@@ -45,7 +45,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "👋 မင်္ဂလာပါ!\n\n",
+        "👋 မင်္ဂလာပါ!\n\n"
+        "❓ အကူအညီလိုအပ်ရင်\n"
+        "- Admin ကို ဆက်သွယ်ရန်:\n"
+        "_👉 @AHLFLK2025",
         reply_markup=reply_markup
     )
 
