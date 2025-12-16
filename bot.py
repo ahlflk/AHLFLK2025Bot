@@ -1,18 +1,18 @@
 import os
 import logging
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import Application, CommandHandler, CallbackQueryHandler, MessageHandler, ContextTypes, ChatMemberHandler, filters
+from telegram.ext import Application, CommandHandler, CallbackQueryHandler, ContextTypes, ChatMemberHandler
 
 # Logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment Variables (Render မှာ ထည့်ထားရမည်)
+# Environment Variables
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 if not BOT_TOKEN:
     raise RuntimeError("BOT_TOKEN is not set!")
 
-PUBLIC_URL = os.getenv("PUBLIC_URL")  # ဥပမာ: https://your-bot.onrender.com (slash မပါ)
+PUBLIC_URL = os.getenv("PUBLIC_URL")
 if not PUBLIC_URL:
     raise RuntimeError("PUBLIC_URL is not set!")
 
@@ -26,15 +26,19 @@ PORT = int(os.getenv("PORT", 10000))
 # Handlers
 # ========================
 
-# /start command (private chat မှာပဲ အလုပ်လုပ်မယ်)
+# Private chat မှာ /start ပဲ အလုပ်လုပ်မယ်
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    # Private chat မှာ ပဲ အလုပ်လုပ်မယ်
+    if update.effective_chat.type != "private":
+        return
+
     keyboard = [
         [
             InlineKeyboardButton("📚 အကြောင်းအရာ", callback_data='about'),
             InlineKeyboardButton("❓ အကူအညီ", callback_data='help'),
         ],
         [
-            InlineKeyboardButton("🌐 ဝက်ဘ်ဆိုက်", url='https://example.com'),  # လိုချင်တဲ့ link ပြောင်းပါ
+            InlineKeyboardButton("🌐 ဝက်ဘ်ဆိုက်", url='https://example.com'),
             InlineKeyboardButton("📞 ဆက်သွယ်ရန်", callback_data='contact'),
         ]
     ]
@@ -45,11 +49,10 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup=reply_markup
     )
 
-# Group ထဲ အဖွဲ့ဝင်အသစ် ဝင်လာရင် ကြိုဆိုမယ်
+# Group/Supergroup ထဲ အဖွဲ့ဝင်အသစ် ဝင်လာရင် ကြိုဆိုမယ်
 async def greet_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     new_chat_member = update.chat_member.new_chat_member
 
-    # အသစ်ဝင်လာတာ သေချာအောင် စစ်ဆေးခြင်း
     if (new_chat_member.status == "member" and 
         new_chat_member.old_chat_member.status in ["left", "kicked", None]):
         
@@ -66,7 +69,10 @@ async def greet_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
         reply_markup = InlineKeyboardMarkup(keyboard)
 
         welcome_text = (
-            f"👋 မင်္ဂလာပါ! {user.mention_html()}!\n\n"
+            f"👋 မင်္ဂလာပါ {user.mention_html()}!\n\n"
+            f"🎉 <b>{update.effective_chat.title}</b> AHLFLK2025 Chat/Group မှ ကြိုဆိုပါတယ်။\n\n"
+            "🙏 အဖွဲ့ထဲမှာ ယဉ်ကျေးစွာ ဆက်ဆံပေးပါ။\n"
+            "စည်းမျဉ်းတွေ လိုက်နာပေးပါနော်။"
         )
 
         await context.bot.send_message(
@@ -84,20 +90,19 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     if query.data == 'about':
         await query.edit_message_text(
-            text="👋 မင်္ဂလာပါ!\n"
+            text="🤖 ဒီ bot က Group Management နဲ့ Welcome Message အတွက် ရေးထားတဲ့ bot ပါ။\n"
         )
     elif query.data == 'help':
         await query.edit_message_text(
             text="❓ အကူအညီလိုအပ်ရင်:\n"
                  "- /start နှိပ်ပါ\n"
-                 "- Admin ကို တိုက်ရိုက် ဆက်သွယ်ပါ:\n"
-                 "_ 👉 @AHLFLK2025\n"
+                 "- Admin ကို ဆက်သွယ်ပါ:\n"
+                 "_👉 @AHLFLK2025\n"
         )
     elif query.data == 'contact':
         await query.edit_message_text(
             text="📞 ဆက်သွယ်ရန်:\n"
                  "👉 @AHLFLK2025\n"
-                 "သို့မဟုတ် email: example@gmail.com"
         )
     elif query.data == 'rules':
         await query.edit_message_text(
@@ -109,11 +114,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             parse_mode='HTML'
         )
 
-# အခြား text message တွေကို echo ပြန်ပို့မယ်
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.text:
-        await update.message.reply_text(f"သင်ပို့တာ → {update.message.text}")
-
 # ========================
 # Main Function
 # ========================
@@ -122,15 +122,13 @@ def main():
     logger.info("Building application...")
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Handlers ထည့်ခြင်း
+    # Handlers ထည့်ခြင်း (echo ဖြုတ်လိုက်ပါပြီ)
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CallbackQueryHandler(button_handler))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
     application.add_handler(ChatMemberHandler(greet_new_member, chat_member_types=ChatMemberHandler.CHAT_MEMBER))
 
     logger.info("Setting up webhook: %s", WEBHOOK_URL)
 
-    # Webhook စတင်ခြင်း
     application.run_webhook(
         listen="0.0.0.0",
         port=PORT,
