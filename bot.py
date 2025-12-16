@@ -90,13 +90,13 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await query.edit_message_text(
             text="❓ အကူအညီလိုအပ်ရင်:\n"
                  "- /start နှိပ်ပါ\n"
-                 "- Admin ကို တိုက်ရိုက် ဆက်သွယ်ပါ:➡️ @AHLFLK2025"
+                 "- Admin ကို တိုက်ရိုက် ဆက်သွယ်ပါ:\n"
+                 "👉 @AHLFLK2025"
         )
     elif query.data == 'contact':
         await query.edit_message_text(
             text="📞 ဆက်သွယ်ရန်:\n"
-                 "➡️ @AHLFLK2025\n"
-                 "သို့မဟုတ် email: example@gmail.com"
+                 "👉 @AHLFLK2025\n"
         )
     elif query.data == 'rules':
         await query.edit_message_text(
@@ -107,11 +107,6 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                  "စည်းမျဉ်း ချိုးဖောက်ရင် ဖယ်ရှားပါမယ်။",
             parse_mode='HTML'
         )
-
-# အခြား text message တွေကို echo ပြန်ပို့မယ်
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.message and update.message.text:
-        await update.message.reply_text(f"သင်ပို့တာ → {update.message.text}")
 
 # ========================
 # Main Function
