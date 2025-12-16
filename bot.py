@@ -89,12 +89,15 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     elif query.data == 'help':
         await query.edit_message_text(
             text="❓ အကူအညီလိုအပ်ရင်:\n"
-                 "- /start ကို နှိပ်ပါ\n"
+                 "- /start နှိပ်ပါ\n"
+                 "- ခလုတ်တွေ စမ်းနှိပ်ကြည့်ပါ\n"
+                 "- Admin ကို တိုက်ရိုက် ဆက်သွယ်ပါ: @AHLFLK2025"
         )
     elif query.data == 'contact':
         await query.edit_message_text(
             text="📞 ဆက်သွယ်ရန်:\n"
-                 "➡️ @AHLFLK2025\n"
+                 "@AHLFLK2025\n"
+                 "သို့မဟုတ် email: example@gmail.com"
         )
     elif query.data == 'rules':
         await query.edit_message_text(
