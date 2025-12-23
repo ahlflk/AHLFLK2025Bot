@@ -150,8 +150,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
     elif data == "contact":
         text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n"
-               "👇 Admin_Account\n\n"
-               "👉 @AHLFLK2025\n\n"
+               "👇 Admin_Account\n"
+               "👉 @AHLFLK2025\n"
     elif data == "rules":
         text = (
             "📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
