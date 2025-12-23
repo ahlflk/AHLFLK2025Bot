@@ -123,6 +123,7 @@ async def greet_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
     caption = (
         f"👋 မင်္ဂလာပါ {user.mention_html()}!\n\n"
         f"🎉 <b>{chat.title}</b> အဖွဲ့မှ ကြိုဆိုပါတယ်။\n\n"
+        f"အဖွဲ့ထဲမှာ ပျော်ရွှင်စွာ ဆက်ဆံပါနော် ❤️"
     )
 
     sent = await context.bot.send_photo(
@@ -177,9 +178,9 @@ async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.message.reply_text(
         text=(
             "📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
-            "1. ယဉ်ကျေးစွာ ဆက်ဆံပါ\n"
-            "2. Spam၊ Ads မလုပ်ပါနဲ့\n"
-            "3. အဖွဲ့နဲ့ မသက်ဆိုင်တဲ့ အကြောင်းအရာများ မမျှဝေပါနဲ့\n\n"
+            "1. ယဉ်ကျေးစွာ ဆက်ဆံပါ\n2. Spam၊ Ads မလုပ်ပါနဲ့\n"
+            "3. အဖွဲ့နဲ့ မသက်ဆိုင်တဲ့ အကြောင်းအရာများ မမျှဝေပါနဲ့\n"
+            "4. အခြား အဖွဲ့ဝင်များကို နှောင့်ယှက်မှု မပြုပါနဲ့\n\n"
             "စည်းမျဉ်း ချိုးဖောက်ပါက ဖယ်ရှားပါမည်။"
         ),
         parse_mode=ParseMode.HTML,
@@ -531,7 +532,8 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "👋 မင်္ဂလာပါ!\n\n",
+        "👋 မင်္ဂလာပါ!\n\n"
+        "Group Management Bot ပါ။",
         reply_markup=reply_markup,
     )
 
@@ -582,4 +584,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-    
