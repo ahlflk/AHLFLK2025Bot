@@ -116,8 +116,8 @@ async def greet_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     caption = (
         f"👋 မင်္ဂလာပါ {user.mention_html()}!\n\n"
-        f"🎉 <b>{chat.title}</b> မှ နွေးထွေးစွာ ကြိုဆိုပါတယ်။\n\n"
-        f"အောက်ပါ buttons များကို အသုံးပြုနိုင်ပါပြီ ❤️"
+        f"🎉 <b>{chat.title}</b> မှ\n\n"
+        f"🎊 နွေးထွေးစွာ ကြိုဆိုပါတယ်။"
     )
 
     sent = await context.bot.send_photo(
@@ -141,7 +141,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = query.data
     if data == "about":
-        text = "🤖 <b>Bot အကြောင်း</b>\n\nGroup Management Bot ပါ။\n\n👨‍💻 Developer: @AHLFLK2025"
+        text = "🤖 <b>Bot အကြောင်း</b>\n\n👥 Group Management Bot ပါ။\n\n👨‍💻 Developer: @AHLFLK2025"
     elif data == "help":
         text = (
             "❓ <b>အကူအညီ (Admin Commands)</b>\n\n"
@@ -406,7 +406,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "👋 မင်္ဂလာပါ!\n\nGroup Management Bot ပါ။",
+        "👋 မင်္ဂလာပါ! မိတ်ဆွေ!\n\n",
         reply_markup=reply_markup,
     )
 
