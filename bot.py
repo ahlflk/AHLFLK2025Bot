@@ -40,7 +40,7 @@ PORT = int(os.getenv("PORT", 10000))
 CHANNEL_ID = "@AHLFLK2025channel"
 CHATBOT_LOGO_URL = "https://raw.githubusercontent.com/ahlflk/AHLFLK2025Bot/refs/heads/main/chatbot_logo.png"
 
-# Fixed Buttons (Group welcome နဲ့ Channel post နှစ်ခုလုံးမှာ သုံးမယ်)
+# Fixed Buttons for both Group welcome and Channel post
 COMMON_BUTTONS = InlineKeyboardMarkup([
     [InlineKeyboardButton("AHLFLK_VPN_APK_ရယူရန်", url="https://t.me/AHLFLK2025channel/259")],
     [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/AHLFLK2025channel/22")],
@@ -183,7 +183,206 @@ async def rules_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
         parse_mode=ParseMode.HTML,
     )
 
-# Moderation Commands (warn, warns, resetwarns, mute, unmute, ban, unban) - အရင်ကအတိုင်း အပြည့်ပါပါတယ်
+# Moderation Commands
+async def warn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("⚠️ Warn လုပ်ချင်တဲ့ message ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    user_id = target_user.id
+
+    if target_user.is_bot:
+        await update.message.reply_text("🤖 Bot ကို warn မလုပ်နိုင်ပါ။")
+        return
+
+    count = add_warn(chat_id, user_id)
+
+    await update.message.reply_text(
+        f"⚠️ <b>သတိပေး အမှတ် {count}/{MAX_WARNS}</b>\n"
+        f"👤 {target_user.mention_html()} ကို သတိပေးလိုက်ပါပြီ။",
+        parse_mode=ParseMode.HTML,
+    )
+
+    if count >= MAX_WARNS:
+        try:
+            await context.bot.ban_chat_member(chat_id=chat_id, user_id=user_id)
+            await context.bot.send_message(
+                chat_id=chat_id,
+                text=f"⛔ {target_user.mention_html()} ကို အမှတ်ပြည့်သဖြင့် ban လုပ်လိုက်ပါပြီ။",
+                parse_mode=ParseMode.HTML,
+            )
+            reset_warns(chat_id, user_id)
+        except Exception as e:
+            logger.error(f"Auto-ban failed: {e}")
+
+async def warns_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("👀 Warn အမှတ်ကြည့်ချင်တဲ့ user ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    count = get_warn_count(chat_id, target_user.id)
+
+    await update.message.reply_text(
+        f"📊 {target_user.mention_html()} ရဲ့ သတိပေး အမှတ်: <b>{count}/{MAX_WARNS}</b>",
+        parse_mode=ParseMode.HTML,
+    )
+
+async def resetwarns_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("🗑️ Warn ရှင်းချင်တဲ့ user ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    reset_warns(chat_id, target_user.id)
+
+    await update.message.reply_text(
+        f"✅ {target_user.mention_html()} ရဲ့ သတိပေး အမှတ်များကို ရှင်းလိုက်ပါပြီ။",
+        parse_mode=ParseMode.HTML,
+    )
+
+async def mute_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("🔇 Mute လုပ်ချင်တဲ့ message ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    user_id = target_user.id
+
+    if target_user.is_bot:
+        await update.message.reply_text("🤖 Bot ကို mute မလုပ်နိုင်ပါ။")
+        return
+
+    hours = 1
+    if context.args:
+        try:
+            hours = int(context.args[0])
+            hours = max(1, min(hours, 168))
+        except:
+            pass
+
+    try:
+        await context.bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            permissions={"can_send_messages": False},
+            until_date=timedelta(hours=hours),
+        )
+        await update.message.reply_text(
+            f"🔇 {target_user.mention_html()} ကို <b>{hours} နာရီ</b> mute လုပ်လိုက်ပါပြီ။",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await update.message.reply_text("❌ Mute လုပ်မရပါ။ Bot ကို admin အခွင့်အရေး ပေးပါ။")
+        logger.error(f"Mute failed: {e}")
+
+async def unmute_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("🔊 Unmute လုပ်ချင်တဲ့ message ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    user_id = target_user.id
+
+    try:
+        await context.bot.restrict_chat_member(
+            chat_id=chat_id,
+            user_id=user_id,
+            permissions={
+                "can_send_messages": True,
+                "can_send_media_messages": True,
+                "can_send_polls": True,
+                "can_send_other_messages": True,
+                "can_add_web_page_previews": True,
+            },
+        )
+        await update.message.reply_text(
+            f"🔊 {target_user.mention_html()} ကို unmute လုပ်ပြီး စကားပြောခွင့် ပြန်ပေးလိုက်ပါပြီ။",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await update.message.reply_text("❌ Unmute လုပ်မရပါ။")
+        logger.error(f"Unmute failed: {e}")
+
+async def ban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("⛔ Ban လုပ်ချင်တဲ့ message ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    user_id = target_user.id
+
+    if target_user.is_bot:
+        await update.message.reply_text("🤖 Bot ကို ban မလုပ်နိုင်ပါ။")
+        return
+
+    try:
+        await context.bot.ban_chat_member(chat_id=chat_id, user_id=user_id)
+        await update.message.reply_text(
+            f"⛔ {target_user.mention_html()} ကို အဖွဲ့ကနေ ဖယ်ရှားလိုက်ပါပြီ။",
+            parse_mode=ParseMode.HTML,
+        )
+        reset_warns(chat_id, user_id)
+    except Exception as e:
+        await update.message.reply_text("❌ Ban လုပ်မရပါ။ Bot ကို Ban users ခွင့်ပြုပါ။")
+        logger.error(f"Ban failed: {e}")
+
+async def unban_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin_or_owner(update, context):
+        await update.message.reply_text("❌ Admin များသာ သုံးခွင့်ရှိပါတယ်။")
+        return
+
+    reply_msg = update.message.reply_to_message
+    if not reply_msg or not reply_msg.from_user:
+        await update.message.reply_text("✅ Unban လုပ်ချင်တဲ့ message ကို reply လုပ်ပြီး သုံးပါ။")
+        return
+
+    target_user = reply_msg.from_user
+    chat_id = update.effective_chat.id
+    user_id = target_user.id
+
+    try:
+        await context.bot.unban_chat_member(chat_id=chat_id, user_id=user_id, only_if_banned=True)
+        await update.message.reply_text(
+            f"✅ {target_user.mention_html()} ကို unban လုပ်ပြီး ပြန်ဝင်ခွင့်ပေးလိုက်ပါပြီ။",
+            parse_mode=ParseMode.HTML,
+        )
+    except Exception as e:
+        await update.message.reply_text("❌ Unban လုပ်မရပါ (သို့မဟုတ် မူလကတည်းက ban မထားပါ)။")
+        logger.error(f"Unban failed: {e}")
 
 # Clean service messages
 async def clean_service_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -228,7 +427,7 @@ async def receive_photo(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receive_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if update.message.text == "/skip":
-        pending_posts[user_id]["caption"] = ""
+        pending_posts[user_id]["caption"] = "#AHLFLK_VPN\n#1_Day_Key"
     else:
         pending_posts[user_id]["caption"] = update.message.text_html
 
@@ -238,7 +437,7 @@ async def receive_caption(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def receive_buttons(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     if update.message.text == "/skip":
-        pending_posts[user_id]["buttons"] = COMMON_BUTTONS.inline_keyboard  # default buttons
+        pending_posts[user_id]["buttons"] = COMMON_BUTTONS.inline_keyboard
     else:
         lines = update.message.text.strip().split("\n")
         buttons = []
@@ -293,7 +492,6 @@ async def receive_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return ConversationHandler.END
 
 async def skip_file(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # /skip ရိုက်ရင် file ကို None ထားပြီး ဆက်သွားမယ်
     return await receive_file(update, context)
 
 async def cancel_post(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -307,7 +505,7 @@ async def send_scheduled_post(context: ContextTypes.DEFAULT_TYPE):
     buttons = data.get("buttons", COMMON_BUTTONS.inline_keyboard)
     keyboard = InlineKeyboardMarkup(buttons)
 
-    caption = data.get("caption", "#AHLFLK_VPN\n#1_Day_Key")  # default caption
+    caption = data.get("caption", "#AHLFLK_VPN\n#1_Day_Key")
 
     try:
         await context.bot.send_photo(
@@ -352,7 +550,6 @@ def main():
 
     application = Application.builder().token(BOT_TOKEN).build()
 
-    # Handlers
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("rules", rules_command))
     application.add_handler(CommandHandler("warn", warn_command))
@@ -366,7 +563,6 @@ def main():
     application.add_handler(ChatMemberHandler(greet_new_member, chat_member_types=ChatMemberHandler.CHAT_MEMBER))
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS | filters.StatusUpdate.LEFT_CHAT_MEMBER, clean_service_messages))
 
-    # /post conversation
     post_conv = ConversationHandler(
         entry_points=[CommandHandler("post", post_command)],
         states={
@@ -376,7 +572,7 @@ def main():
             WAITING_TIME: [MessageHandler(filters.TEXT & ~filters.COMMAND, receive_time)],
             WAITING_FILE: [
                 MessageHandler(filters.Document.ALL, receive_file),
-                CommandHandler("skip", receive_file),  # ဒီ line က အရေးကြီးဆုံး! /skip အလုပ်လုပ်အောင်
+                CommandHandler("skip", receive_file),
             ],
         },
         fallbacks=[CommandHandler("cancel", cancel_post)],
