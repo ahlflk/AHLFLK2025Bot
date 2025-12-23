@@ -149,7 +149,8 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/mute [နာရီ] - Mute\n/unmute - Unmute\n/ban - Ban\n/unban - Unban\n/rules - စည်းမျဉ်း\n\nအားလုံး reply လုပ်ပြီး သုံးပါ။"
         )
     elif data == "contact":
-        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n👉 @AHLFLK2025"
+        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n"
+               "👇 Admin_Account\n\n👉 @AHLFLK2025"
     elif data == "rules":
         text = (
             "📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
