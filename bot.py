@@ -41,7 +41,7 @@ CHATBOT_LOGO_URL = "https://raw.githubusercontent.com/ahlflk/AHLFLK2025Bot/refs/
 WELCOME_BUTTONS = InlineKeyboardMarkup([
     [InlineKeyboardButton("AHLFLK_VPN_APK_ရယူရန်", url="https://t.me/AHLFLK2025channel/259")],
     [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/AHLFLK2025channel/22")],
-    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="https://t.me/AHLFLK2025")],
+    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="@AHLFLK2025")],
 ])
 
 # Database
@@ -149,9 +149,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/mute [နာရီ] - Mute\n/unmute - Unmute\n/ban - Ban\n/unban - Unban\n/rules - စည်းမျဉ်း\n\nအားလုံး reply လုပ်ပြီး သုံးပါ။"
         )
     elif data == "contact":
-        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n"
-               "👇 Admin_Account\n"
-               "👉 @AHLFLK2025\n\n"
+        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n👇 Admin_Account\n\n👉 @AHLFLK2025"
     elif data == "rules":
         text = (
             "📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
