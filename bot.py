@@ -39,9 +39,9 @@ CHATBOT_LOGO_URL = "https://raw.githubusercontent.com/ahlflk/AHLFLK2025Bot/refs/
 
 # Fixed Buttons for Group welcome
 WELCOME_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("AHLFLK_VPN_APK_ရယူရန်", url="https://t.me/AHLFLK2025channel/259")],
-    [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/AHLFLK2025channel/22")],
-    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="@AHLFLK2025")],
+    [InlineKeyboardButton("AHLFLK_VPN_APK_ရယူရန်", url="https://t.me/ahlflk2025channel/259")],
+    [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/ahlflk2025channel/22")],
+    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="@ahlflk2025")],
 ])
 
 # Database
@@ -141,7 +141,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
     data = query.data
     if data == "about":
-        text = "🤖 <b>Bot အကြောင်း</b>\n\n👥 Group Management Bot ပါ။\n\n👨‍💻 Developer: @AHLFLK2025"
+        text = "🤖 <b>Bot အကြောင်း</b>\n\n👥 Group Management Bot ပါ။\n\n👨‍💻 Developer: @ahlflk2025"
     elif data == "help":
         text = (
             "❓ <b>အကူအညီ (Admin Commands)</b>\n\n"
@@ -149,7 +149,7 @@ async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
             "/mute [နာရီ] - Mute\n/unmute - Unmute\n/ban - Ban\n/unban - Unban\n/rules - စည်းမျဉ်း\n\nအားလုံး reply လုပ်ပြီး သုံးပါ။"
         )
     elif data == "contact":
-        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n👇 Admin_Account\n\n👉 @AHLFLK2025"
+        text = "📞 <b>ဆက်သွယ်ရန်</b>\n\n👇 Admin_Account\n\n👉 @ahlflk2025"
     elif data == "rules":
         text = (
             "📜 <b>အဖွဲ့ စည်းမျဉ်း</b>\n\n"
@@ -406,7 +406,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     reply_markup = InlineKeyboardMarkup(keyboard)
 
     await update.message.reply_text(
-        "👋 မင်္ဂလာပါ! မိတ်ဆွေ!\n\n",
+        "👋 မင်္ဂလာပါ!\n\n",
         reply_markup=reply_markup,
     )
 
