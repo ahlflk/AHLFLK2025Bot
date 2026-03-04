@@ -2,7 +2,7 @@ import os
 import logging
 import asyncio
 import sqlite3
-from datetime import timedelta
+from datetime import datetime, timedelta
 
 from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
 from telegram.ext import (
@@ -10,162 +10,211 @@ from telegram.ext import (
     CommandHandler,
     CallbackQueryHandler,
     ContextTypes,
-    ChatMemberHandler,
     MessageHandler,
     filters,
+    Defaults
 )
 from telegram.constants import ParseMode, ChatMemberStatus
 
-# Logging
-logging.basicConfig(level=logging.INFO)
+# --- Logging ---
+logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Environment Variables
+# --- Environment Variables ---
 BOT_TOKEN = os.getenv("BOT_TOKEN")
-if not BOT_TOKEN:
-    raise RuntimeError("BOT_TOKEN is not set!")
-
 PUBLIC_URL = os.getenv("PUBLIC_URL")
-if not PUBLIC_URL:
-    raise RuntimeError("PUBLIC_URL is not set!")
-
-WEBHOOK_PATH = "/webhook"
-WEBHOOK_URL = f"{PUBLIC_URL}{WEBHOOK_PATH}"
-WEBHOOK_SECRET_TOKEN = os.getenv("WEBHOOK_SECRET", "my-super-secret-token")
 PORT = int(os.getenv("PORT", 10000))
+# Webhook settings
+WEBHOOK_URL = f"{PUBLIC_URL}/webhook"
+WEBHOOK_SECRET = os.getenv("WEBHOOK_SECRET", "my-secret-123")
 
-# Settings
+# --- Settings ---
 CHATBOT_LOGO_URL = "https://raw.githubusercontent.com/ahlflk/AHLFLK2025Bot/refs/heads/main/chatbot_logo.png"
+MAX_WARNS = 3
 
-WELCOME_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("AHLFLK_VPN_APK_ရယူရန်", url="https://t.me/ahlflk2025channel/259")],
-    [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/ahlflk2025channel/22")],
-    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="https://t.me/ahlflk2025")],
-])
+# --- Database Setup ---
+DB_FILE = "management.db"
 
-# Database functions
 def init_db():
-    conn = sqlite3.connect("bot.db")
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    c.execute('''CREATE TABLE IF NOT EXISTS warns (chat_id INTEGER, user_id INTEGER, count INTEGER DEFAULT 0, PRIMARY KEY (chat_id, user_id))''')
+    c.execute('''CREATE TABLE IF NOT EXISTS warns 
+                 (chat_id INTEGER, user_id INTEGER, count INTEGER DEFAULT 0, 
+                 PRIMARY KEY (chat_id, user_id))''')
     conn.commit()
     conn.close()
 
-def get_warn_count(chat_id: int, user_id: int) -> int:
-    conn = sqlite3.connect("bot.db")
+def get_warns(chat_id, user_id):
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("SELECT count FROM warns WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
     row = c.fetchone()
     conn.close()
     return row[0] if row else 0
 
-def add_warn(chat_id: int, user_id: int) -> int:
-    conn = sqlite3.connect("bot.db")
+def add_warn(chat_id, user_id):
+    count = get_warns(chat_id, user_id) + 1
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
-    current = get_warn_count(chat_id, user_id)
-    new_count = current + 1
-    c.execute("INSERT OR REPLACE INTO warns (chat_id, user_id, count) VALUES (?, ?, ?)", (chat_id, user_id, new_count))
+    c.execute("INSERT OR REPLACE INTO warns (chat_id, user_id, count) VALUES (?, ?, ?)", (chat_id, user_id, count))
     conn.commit()
     conn.close()
-    return new_count
+    return count
 
-def reset_warns(chat_id: int, user_id: int):
-    conn = sqlite3.connect("bot.db")
+def clear_warns(chat_id, user_id):
+    conn = sqlite3.connect(DB_FILE)
     c = conn.cursor()
     c.execute("DELETE FROM warns WHERE chat_id = ? AND user_id = ?", (chat_id, user_id))
     conn.commit()
     conn.close()
 
-# Helper
-async def is_admin_or_owner(update: Update, context: ContextTypes.DEFAULT_TYPE) -> bool:
+# --- Keyboards ---
+WELCOME_BUTTONS = InlineKeyboardMarkup([
+    [InlineKeyboardButton("AHLFLK_VPN_PRO_APK_ရယူရန်", url="https://t.me/ahlflk2025channel/239")],
+    [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/ahlflk2025channel/22")],
+    [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="https://t.me/ahlflk2025")],
+])
+
+START_KEYBOARD = InlineKeyboardMarkup([
+    [InlineKeyboardButton("📚 About", callback_data="about"), InlineKeyboardButton("📜 Rules", callback_data="rules")],
+    [InlineKeyboardButton("❓ Help", callback_data="help"), InlineKeyboardButton("📞 Contact", url="https://t.me/ahlflk2025")]
+])
+
+# --- Helper Function ---
+async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.effective_chat.type == "private": return False
     member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
     return member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
 
-# --- WELCOME FUNCTION (FIXED) ---
-async def welcome_new_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """New member welcome logic using MessageHandler filters"""
+# --- Handlers ---
+
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Private chat start command"""
+    if update.effective_chat.type == "private":
+        await update.message.reply_text(
+            f"👋 မင်္ဂလာပါ <b>{update.effective_user.first_name}</b>!\n\n"
+            "ကျွန်ုပ်သည် AHLFLK Group Management Bot ဖြစ်ပါတယ်။\n"
+            "အဖွဲ့ဝင်များကို စောင့်ကြည့်ရန်နှင့် စည်းကမ်းထိန်းသိမ်းရန် ကူညီပေးပါတယ်။",
+            reply_markup=START_KEYBOARD,
+            parse_mode=ParseMode.HTML
+        )
+
+async def welcome_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    """Greets new members and deletes service message"""
     for user in update.message.new_chat_members:
-        if user.is_bot:
-            continue
-            
+        if user.is_bot: continue
+        
         chat = update.effective_chat
         caption = (
             f"👋 မင်္ဂလာပါ {user.mention_html()}!\n\n"
-            f"🎉 <b>{chat.title}</b> မှ\n"
-            f"🎊 နွေးထွေးစွာ ကြိုဆိုပါတယ်။"
+            f"🎉 <b>{chat.title}</b> မှ နွေးထွေးစွာ ကြိုဆိုပါတယ်။\n\n"
+            "စည်းကမ်းချက်များကို လိုက်နာပေးပါရန် မေတ္တာရပ်ခံအပ်ပါသည်။"
         )
+        
+        sent_msg = await context.bot.send_photo(
+            chat_id=chat.id,
+            photo=CHATBOT_LOGO_URL,
+            caption=caption,
+            reply_markup=WELCOME_BUTTONS,
+            parse_mode=ParseMode.HTML
+        )
+        
+        # Auto-delete welcome message after 2 mins
+        context.job_queue.run_once(lambda ctx: context.bot.delete_message(chat.id, sent_msg.message_id), 120)
 
-        try:
-            sent = await context.bot.send_photo(
-                chat_id=chat.id,
-                photo=CHATBOT_LOGO_URL,
-                caption=caption,
-                parse_mode=ParseMode.HTML,
-                reply_markup=WELCOME_BUTTONS,
-            )
-            
-            # Delete welcome message after 5 minutes
-            context.job_queue.run_once(delete_msg, 300, data=(chat.id, sent.message_id))
-        except Exception as e:
-            logger.error(f"Welcome failed: {e}")
-
-async def delete_msg(context: ContextTypes.DEFAULT_TYPE):
-    chat_id, message_id = context.job_queue.current_job.data
-    try:
-        await context.bot.delete_message(chat_id=chat_id, message_id=message_id)
-    except:
-        pass
-
-# --- OTHER HANDLERS ---
-async def clean_service_messages(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Delete 'user joined' or 'left' service messages"""
+    # Delete 'User joined' service message
     try:
         await update.message.delete()
     except:
         pass
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if update.effective_chat.type == "private":
-        await update.message.reply_text("👋 AHLFLK Management Bot မှ ကြိုဆိုပါတယ်။")
-
-async def warn_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    if not await is_admin_or_owner(update, context): return
+async def warn_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context): return
     reply = update.message.reply_to_message
-    if not reply: return await update.message.reply_text("Reply to a user to warn.")
+    if not reply: return await update.message.reply_text("⚠️ User ရဲ့ message ကို reply ပြန်ပြီး သုံးပါ။")
     
-    count = add_warn(update.effective_chat.id, reply.from_user.id)
-    await update.message.reply_text(f"⚠️ {reply.from_user.mention_html()} ကို သတိပေးလိုက်ပါပြီ ({count}/3)", parse_mode=ParseMode.HTML)
+    target = reply.from_user
+    count = add_warn(update.effective_chat.id, target.id)
     
-    if count >= 3:
-        await context.bot.ban_chat_member(update.effective_chat.id, reply.from_user.id)
-        reset_warns(update.effective_chat.id, reply.from_user.id)
+    if count >= MAX_WARNS:
+        await context.bot.ban_chat_member(update.effective_chat.id, target.id)
+        await update.message.reply_text(f"⛔ {target.mention_html()} ကို သတိပေးချက် ၃ ကြိမ်ပြည့်သဖြင့် Ban လိုက်ပါပြီ။", parse_mode=ParseMode.HTML)
+        clear_warns(update.effective_chat.id, target.id)
+    else:
+        await update.message.reply_text(f"⚠️ {target.mention_html()} ကို သတိပေးလိုက်ပါပြီ။ ({count}/{MAX_WARNS})", parse_mode=ParseMode.HTML)
 
+async def mute_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context): return
+    reply = update.message.reply_to_message
+    if not reply: return
+    
+    # Default 1 hour if no args
+    hours = int(context.args[0]) if context.args and context.args[0].isdigit() else 1
+    until = datetime.now() + timedelta(hours=hours)
+    
+    await context.bot.restrict_chat_member(
+        update.effective_chat.id, 
+        reply.from_user.id, 
+        permissions={"can_send_messages": False},
+        until_date=until
+    )
+    await update.message.reply_text(f"🔇 {reply.from_user.mention_html()} ကို {hours} နာရီကြာ Mute လိုက်ပါပြီ။", parse_mode=ParseMode.HTML)
+
+async def unmute_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    if not await is_admin(update, context): return
+    reply = update.message.reply_to_message
+    if not reply: return
+    
+    await context.bot.restrict_chat_member(
+        update.effective_chat.id, 
+        reply.from_user.id, 
+        permissions={
+            "can_send_messages": True, "can_send_media_messages": True,
+            "can_send_polls": True, "can_send_other_messages": True,
+            "can_add_web_page_previews": True
+        }
+    )
+    await update.message.reply_text(f"🔊 {reply.from_user.mention_html()} စကားပြန်ပြောလို့ရပါပြီ။", parse_mode=ParseMode.HTML)
+
+async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    query = update.callback_query
+    await query.answer()
+    
+    if query.data == "rules":
+        text = "📜 <b>Rules:</b>\n1. No Spam\n2. Respect Others\n3. No Illegal Links"
+        await query.message.reply_text(text, parse_mode=ParseMode.HTML)
+    elif query.data == "help":
+        text = "❓ <b>Help:</b>\n/warn - သတိပေးရန်\n/mute [နာရီ] - စကားပိတ်ရန်\n/unmute - ပြန်ဖွင့်ရန်\n/ban - ထုတ်ပစ်ရန်"
+        await query.message.reply_text(text, parse_mode=ParseMode.HTML)
+
+# --- Main Engine ---
 def main():
     init_db()
     application = Application.builder().token(BOT_TOKEN).build()
 
     # Handlers
     application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("warn", warn_member))
+    application.add_handler(CommandHandler("mute", mute_member))
+    application.add_handler(CommandHandler("unmute", unmute_member))
+    application.add_handler(CommandHandler("ban", warn_member)) # Ban uses similar logic
+    application.add_handler(CallbackQueryHandler(callback_query_handler))
     
-    # User အသစ်ဝင်လာတာကို ဖမ်းတဲ့နေရာ (StatusUpdate filters ကို သုံးထားပါတယ်)
-    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_new_member))
+    # User Join Detection (Fixed)
+    application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_handler))
     
-    # Join/Leave စာသားတွေကို ဖျက်ချင်ရင် (Optional)
-    application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, clean_service_messages))
+    # Service Message Clean (Left Member)
+    application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, lambda u, c: u.message.delete()))
 
-    # Admin commands
-    application.add_handler(CommandHandler("warn", warn_command))
-
-    # Webhook run
-    application.run_webhook(
-        listen="0.0.0.0",
-        port=PORT,
-        url_path=WEBHOOK_PATH,
-        webhook_url=WEBHOOK_URL,
-        secret_token=WEBHOOK_SECRET_TOKEN,
-        allowed_updates=Update.ALL_TYPES # အရေးကြီးသည်
-    )
+    # Run Bot
+    if PUBLIC_URL:
+        application.run_webhook(
+            listen="0.0.0.0", port=PORT, url_path="webhook",
+            webhook_url=WEBHOOK_URL, secret_token=WEBHOOK_SECRET,
+            allowed_updates=Update.ALL_TYPES
+        )
+    else:
+        application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 if __name__ == "__main__":
     main()
