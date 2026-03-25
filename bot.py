@@ -67,7 +67,7 @@ def clear_warns(chat_id, user_id):
 
 # --- Keyboards ---
 WELCOME_BUTTONS = InlineKeyboardMarkup([
-    [InlineKeyboardButton("AHLFLK_VPN_PRO_APK_ရယူရန်", url="https://t.me/ahlflk2025channel/239")],
+    [InlineKeyboardButton("A_VPN_PRO_APK_ရယူရန်", url="https://t.me/ahlflk2025channel/750")],
     [InlineKeyboardButton("VIP_Account_ဈေးနှုန်းကြည့်ရန်", url="https://t.me/ahlflk2025channel/22")],
     [InlineKeyboardButton("Admin_ကို_ဆက်သွယ်ရန်", url="https://t.me/ahlflk2025")],
 ])
