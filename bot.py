@@ -1,6 +1,5 @@
 import os
 import logging
-import asyncio
 import sqlite3
 from datetime import datetime, timedelta
 
@@ -83,6 +82,15 @@ async def is_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     member = await context.bot.get_chat_member(update.effective_chat.id, update.effective_user.id)
     return member.status in [ChatMemberStatus.ADMINISTRATOR, ChatMemberStatus.OWNER]
 
+# --- Job Function for Deleting Messages ---
+async def delete_message_job(context: ContextTypes.DEFAULT_TYPE):
+    """Job to delete a message after a certain time"""
+    job = context.job
+    try:
+        await context.bot.delete_message(chat_id=job.chat_id, message_id=job.data)
+    except Exception as e:
+        logger.error(f"Failed to delete message {job.data}: {e}")
+
 # --- Handlers ---
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -96,12 +104,11 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
         )
 
 async def welcome_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Greets new members with the requested format"""
+    """Greets new members and sets a timer to delete the message"""
     for user in update.message.new_chat_members:
         if user.is_bot: continue
         
         chat = update.effective_chat
-        # သင်တောင်းဆိုထားတဲ့ တစ်ကြောင်းချင်းစီ format
         caption = (
             f"👋 မင်္ဂလာပါ {user.mention_html()}!\n\n"
             f"🎉 <b>{chat.title}</b> မှ\n"
@@ -116,23 +123,34 @@ async def welcome_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 reply_markup=WELCOME_BUTTONS,
                 parse_mode=ParseMode.HTML
             )
-            # ၅ မိနစ်အကြာတွင် welcome message ကို ပြန်ဖျက်မည်
-            context.job_queue.run_once(lambda ctx: context.bot.delete_message(chat.id, sent_msg.message_id), 300)
+            
+            # ၅ မိနစ် (၃၀၀ စက္ကန့်) အကြာတွင် Message ကို ဖျက်ရန် Job Queue ထဲထည့်ခြင်း
+            context.job_queue.run_once(
+                delete_message_job, 
+                when=300, 
+                data=sent_msg.message_id, 
+                chat_id=chat.id
+            )
+            
         except Exception as e:
             logger.error(f"Welcome failed: {e}")
 
-    try: await update.message.delete()
-    except: pass
+    # "User joined" ဆိုတဲ့ စာသားကိုပါ ချက်ချင်းဖျက်ပစ်ခြင်း
+    try: 
+        await update.message.delete()
+    except: 
+        pass
 
 async def anti_link_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    """Admin မဟုတ်သူများ Link ပို့ပါက ဖျက်ရန်"""
+    """Delete links from non-admins and warn them"""
     if await is_admin(update, context): return
     
     if any(entity.type in ['url', 'text_link'] for entity in update.message.entities or []):
         try:
             await update.message.delete()
             warning = await update.message.reply_text(f"⚠️ {update.effective_user.mention_html()} Link ပို့ခွင့်မရှိပါ။")
-            context.job_queue.run_once(lambda ctx: context.bot.delete_message(update.effective_chat.id, warning.message_id), 10)
+            # သတိပေးစာကို ၁၀ စက္ကန့်အကြာတွင် ပြန်ဖျက်မည်
+            context.job_queue.run_once(delete_message_job, when=10, data=warning.message_id, chat_id=update.effective_chat.id)
         except: pass
 
 async def warn_member(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -199,6 +217,8 @@ async def callback_query_handler(update: Update, context: ContextTypes.DEFAULT_T
 # --- Main Engine ---
 def main():
     init_db()
+    
+    # Application ကို Build လုပ်သည့်အခါ Job Queue အလိုအလျောက် ပါဝင်လာမည်
     application = Application.builder().token(BOT_TOKEN).build()
 
     # Commands
@@ -212,6 +232,8 @@ def main():
     # Message Handlers
     application.add_handler(MessageHandler(filters.StatusUpdate.NEW_CHAT_MEMBERS, welcome_handler))
     application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), anti_link_handler))
+    
+    # Left Chat Member notification ဖျက်ရန်
     application.add_handler(MessageHandler(filters.StatusUpdate.LEFT_CHAT_MEMBER, lambda u, c: u.message.delete()))
 
     # Run Bot
